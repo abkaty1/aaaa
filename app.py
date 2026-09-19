@@ -45,7 +45,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# رفع الملف من القائمة الجانبية للحفاظ على التترتيب العلوي للفلاتر
+# رفع الملف من القائمة الجانبية للحفاظ على الترتيب العلوي للفلاتر
 st.sidebar.markdown("<h3 style='color: #12543e; text-align:center;'>📂 بوابة رفع الملفات</h3>", unsafe_allow_html=True)
 uploaded_file = st.sidebar.file_uploader("يرجى اختيار أو سحب ملف البيانات (Excel / CSV)", type=["xlsx", "csv"])
 
@@ -58,16 +58,16 @@ if uploaded_file is not None:
     # محرك البحث الذكي للربط التلقائي للأعمدة المتبقية
     col_edu_type = next((c for c in all_cols if any(k in c for k in ['نوع التعليم', 'التعليم'])), None)
     col_dept     = next((c for c in all_cols if any(k in c for k in ['قسم', 'القسم'])), None)
-    col_stage    = next((c for c in all_cols if any(k in c for k in ['المرحلة', 'مرحلة', 'المرحله', 'مرحله'])), None)
     col_gender   = next((c for c in all_cols if any(k in c for k in ['الجنس', 'جنس', 'النوع', 'نوع'])), None)
 
-    # 2. لوحة الفلاتر العلوية على شكل قوائم منسدلة (نظام نور)
+    # 2. لوحة الفلاتر العلوية على شكل قوائم منسدلة (نظام نور) - تم تقليصها لـ 3 فلاتر فقط
     st.markdown("### 🔍 محددات البحث والفرز")
     
-    row_c1, row_c2, row_c3, row_c4 = st.columns(4)
+    # توزيع القوائم المنسدلة الثلاثة في شبكة متناسقة
+    row_c1, row_c2, row_c3 = st.columns(3)
     filtered_df = df.copy()
 
-    # الفلاتر المنسدلة الأربعة المتبقية
+    # الفلاتر المنسدلة الثلاثة المتبقية
     with row_c1:
         if col_edu_type:
             opts = ["الكل"] + df[col_edu_type].dropna().unique().tolist()
@@ -83,13 +83,6 @@ if uploaded_file is not None:
         else: st.caption("❌ حقل 'القسم' غير موجود")
 
     with row_c3:
-        if col_stage:
-            opts = ["الكل"] + df[col_stage].dropna().unique().tolist()
-            sel = st.selectbox("🏫 المرحلة الدراسية:", opts)
-            if sel != "الكل": filtered_df = filtered_df[filtered_df[col_stage] == sel]
-        else: st.caption("❌ حقل 'المرحلة' غير موجود")
-
-    with row_c4:
         if col_gender:
             opts = ["الكل"] + df[col_gender].dropna().unique().tolist()
             sel = st.selectbox("👥 الجنس / النوع:", opts)
@@ -99,31 +92,27 @@ if uploaded_file is not None:
     st.markdown("---")
 
     # 3. عرض بطاقات التقارير الإجمالية (نور ديزاين)
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown(f"<div class='stat-card'><div class='stat-title'>📊 إجمالي السجلات الحالية</div><div class='stat-val'>{len(filtered_df)} <span style='font-size:13px; color:#64748B;'>من {len(df)}</span></div></div>", unsafe_allow_html=True)
     with c2:
         val = filtered_df[col_dept].nunique() if col_dept else 0
         st.markdown(f"<div class='stat-card'><div class='stat-title'>🗂️ الأقسام النشطة</div><div class='stat-val'>{val}</div></div>", unsafe_allow_html=True)
     with c3:
-        val = filtered_df[col_stage].nunique() if col_stage else 0
-        st.markdown(f"<div class='stat-card'><div class='stat-title'>🏫 المراحل التعليمية</div><div class='stat-val'>{val}</div></div>", unsafe_allow_html=True)
-    with c4:
         val = filtered_df[col_gender].nunique() if col_gender else 0
         st.markdown(f"<div class='stat-card'><div class='stat-title'>👥 الفئات المستهدفة (الجنس)</div><div class='stat-val'>{val}</div></div>", unsafe_allow_html=True)
 
-    # 4. ألسنة تفصيلية إحصائية مريحة للعين مع رسوم بيانية منسقة (تم إصلاح خطأ التقسيم هنا)
+    # 4. ألسنة تفصيلية إحصائية مريحة للعين مع رسوم بيانية منسقة (3 ألسنة فقط)
     st.markdown("### 📊 الجداول والبيانات التحليلية")
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "🎓 نوع التعليم", "🗂️ الأقسام", "🏫 المراحل", "👥 الجنس"
+    tab1, tab2, tab3 = st.tabs([
+        "🎓 نوع التعليم", "🗂️ الأقسام", "👥 الجنس"
     ])
     
     noor_palette = ["#12543e", "#2a6f57", "#448b72", "#60a88e", "#7dc5aa", "#9be3c7"]
     target_tabs = [
         (tab1, col_edu_type, "نوع التعليم"),
         (tab2, col_dept, "الأقسام"),
-        (tab3, col_stage, "المراحل"),
-        (tab4, col_gender, "الجنس")
+        (tab3, col_gender, "الجنس")
     ]
 
     for tab, col_name, label in target_tabs:
@@ -136,7 +125,6 @@ if uploaded_file is not None:
                 count_df.columns = [col_name, 'العدد']
                 count_df['النسبة مئوية (%)'] = ((count_df['العدد'] / len(filtered_df)) * 100).round(1)
                 
-                # تم إصلاح تمرير الوسيط الرقمي 2 بداخل st.columns
                 col_l, col_r = st.columns(2)
                 with col_l:
                     st.dataframe(count_df, use_container_width=True, hide_index=True)
@@ -149,7 +137,7 @@ if uploaded_file is not None:
 
     st.markdown("---")
     
-    # 5. استعراض الجدول الكامل المفرز بنمط نظام نور للبيانات
+    # 5. : استعراض الجدول الكامل المفرز بنمط نظام نور للبيانات
     with st.expander("👀 استعراض بيان البيانات المفرزة الكامل"):
         st.dataframe(filtered_df, use_container_width=True)
 else:
