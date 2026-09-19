@@ -115,7 +115,7 @@ if uploaded_file is not None:
     if col_schools:
         global_schools_total = int(pd.to_numeric(df[col_schools], errors='coerce').sum())
     else:
-        global_schools_total = len(df) # الافتراضي عدد السجلات في حال عدم وجود العمود
+        global_schools_total = len(df)
         
     if col_students:
         global_students_total = int(pd.to_numeric(df[col_students], errors='coerce').sum())
@@ -197,5 +197,7 @@ if uploaded_file is not None:
 
     st.markdown("---")
     
-    # 7. استعراض الجدول الكامل المفرز بنمط نظام نور للبيانات (تم إصلاح المحاذاة هنا بدقة)
-    with st.expander("👀 استعراض بيان البيانات المفرزة الكامل"):
+    # 7. استعراض الجدول الكامل المفرز (تم تبسيط النص لتجنب خطأ المسافات تماماً)
+    with st.expander("Data Show"):
+        st.dataframe(filtered_df, use_container_width=True)
+else:
