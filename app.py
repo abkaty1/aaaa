@@ -66,18 +66,15 @@ if uploaded_file is not None:
     df.columns = df.columns.str.strip()
     all_cols = df.columns.tolist()
     
-    # محرك الربط الذكي بالخلفية للتعرف على الحقول تلقائياً
-    col_edu_type = next((c for c in all_cols if any(k in c for k in ['نوع التعليم', 'التعليم', 'تعليم'])), all_cols if all_cols else None)
-    col_dept     = next((c for c in all_cols if any(k in c for k in ['قسم', 'القسم'])), all_cols if len(all_cols) > 1 else None)
-    col_gender   = next((c for c in all_cols if any(k in c for k in ['الجنس', 'جنس', 'النوع', 'نوع'])), all_cols if len(all_cols) > 2 else None)
+    # محرك الربط الذكي الصامت بالخلفية للتعرف على حقولك تلقائياً
+    col_edu_type = next((c for c in all_cols if any(k in c for k in ['نوع التعليم', 'التعليم', 'تعليم'])), all_cols[0] if all_cols else None)
+    col_dept     = next((c for c in all_cols if any(k in c for k in ['قسم', 'القسم'])), all_cols[1] if len(all_cols) > 1 else None)
+    col_gender   = next((c for c in all_cols if any(k in c for k in ['الجنس', 'جنس', 'النوع', 'نوع'])), all_cols[2] if len(all_cols) > 2 else None)
     col_students = next((c for c in all_cols if any(k in c for k in ['طلاب', 'الطلاب', 'طالب', 'عدد الطلاب'])), None)
-    col_schools  = next((c for c in all_cols if any(k in c for k in ['عدد المدارس', 'المدارس', 'مدرسة'])), None)
 
-    # تحويل البيانات إلى أرقام بشكل آمن لمنع الأخطاء الحسابية
+    # تحويل بيانات عمود الطلاب إلى أرقام بشكل آمن لمنع المشاكل الحسابية
     if col_students and col_students in df.columns:
         df[col_students] = pd.to_numeric(df[col_students], errors='coerce').fillna(0)
-    if col_schools and col_schools in df.columns:
-        df[col_schools] = pd.to_numeric(df[col_schools], errors='coerce').fillna(0)
 
     # 2. لوحة الفلاتر العلوية على شكل قوائم منسدلة (نظام نور)
     st.markdown("### 🔍 محددات البحث والفرز")
@@ -85,7 +82,7 @@ if uploaded_file is not None:
     row_c1, row_c2, row_c3 = st.columns(3)
     filtered_df = df.copy()
 
-    # القوائم المنسدلة الثلاثة
+    # القوائم المنسدلة الثلاثة للتصفية
     with row_c1:
         if col_edu_type and col_edu_type in df.columns:
             opts_edu = ["الكل"] + df[col_edu_type].dropna().unique().tolist()
@@ -115,13 +112,9 @@ if uploaded_file is not None:
 
     st.markdown("---")
 
-    # 3. حساب القيم الكلية العامة والفرعية الحالية المحدثة ديناميكياً بناءً على السجلات
-    if col_schools and col_schools in filtered_df.columns:
-        current_schools_total = int(filtered_df[col_schools].sum())
-        global_schools_raw = int(df[col_schools].sum())
-    else:
-        current_schools_total = len(filtered_df)
-        global_schools_raw = len(df)
+    # 3. حساب قيم المدارس بناءً على عدد السجلات الفعلي وحساب إجمالي الطلاب
+    current_schools_total = len(filtered_df)
+    global_schools_raw = len(df)
         
     if col_students and col_students in filtered_df.columns:
         current_students_total = int(filtered_df[col_students].sum())
@@ -130,7 +123,7 @@ if uploaded_file is not None:
         current_students_total = 0
         global_students_raw = 0
 
-    # 4. عرض بطاقات التقارير الإجمالية العامة المحدثة (تعديل مسمى مجموع المدارس وحذف الإجمالي المكرر)
+    # 4. عرض الخلاصة الإحصائية العامة المحدثة (مجموع المدارس بناءً على السجلات واختفاء الإجمالي المكرر)
     st.markdown("### 📈 الخلاصة الإحصائية العامة للبيانات")
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -144,17 +137,13 @@ if uploaded_file is not None:
         val = filtered_df[col_gender].nunique() if (col_gender and col_gender in filtered_df.columns) else 0
         st.markdown(f"<div class='stat-card'><div class='stat-title'>👥 الفئات المستهدفة</div><div class='stat-val'>{val}</div></div>", unsafe_allow_html=True)
 
-    # 5. قسم إحصائيات المطابقة الخاصة بالقسم ونوع التعليم المحددين
+    # 5. قسم إحصائيات المطابقة الخاصة بالقسم ونوع التعليم المحددين بناءً على السجلات
     if sel_edu != "الكل" and sel_dept != "الكل":
         st.markdown("### 🎯 إحصائيات المطابقة الخاصة بالقسم ونوع التعليم المحددين")
         sc1, sc2 = st.columns(2)
         
         with sc1:
-            if col_schools and col_schools in filtered_df.columns:
-                total_schools_sum = filtered_df[col_schools].sum()
-                st.markdown(f"<div class='stat-card-special'><div class='stat-title'>🏢 مجموع المدارس المطابقة</div><div class='stat-val-special'>{int(total_schools_sum):,} مدرسة</div></div>", unsafe_allow_html=True)
-            else:
-                st.markdown(f"<div class='stat-card-special'><div class='stat-title'>🏢 مجموع المدارس المطابقة</div><div class='stat-val-special'>{len(filtered_df):,} مدرسة</div></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='stat-card-special'><div class='stat-title'>🏢 مجموع المدارس المطابقة</div><div class='stat-val-special'>{len(filtered_df):,} مدرسة</div></div>", unsafe_allow_html=True)
                 
         with sc2:
             if col_students and col_students in filtered_df.columns:
@@ -165,7 +154,7 @@ if uploaded_file is not None:
                 
         st.markdown("---")
 
-    # 6. ألسنة تفصيلية إحصائية حرة ومباشرة الظهور تدمج المدارس وإجمالي الطلاب من الملف
+    # 6. ألسنة تفصيلية إحصائية حرة ومباشرة الظهور تدمج المدارس (السجلات) وإجمالي الطلاب من الملف
     st.markdown("### 📊 الجداول والبيانات التحليلية")
     tab1, tab2, tab3 = st.tabs([
         "🎓 نوع التعليم", "🗂️ الأقسام", "👥 الجنس"
@@ -185,7 +174,7 @@ if uploaded_file is not None:
                 
                 total_filtered_len = len(filtered_df) if len(filtered_df) > 0 else 1
                 
-                # استخدام طريقة الربط التجميعي المستقر والآمن
+                # تجميع السجلات (المدارس) آلياً لحل مشكلة عدم عرض الجداول نهائياً
                 count_series = filtered_df.groupby(col_name).size()
                 
                 if col_students and col_students in filtered_df.columns:
@@ -196,3 +185,15 @@ if uploaded_file is not None:
                     count_df = count_series.reset_index()
                     count_df.columns = [col_name, 'العدد (المدارس)']
                 
+                count_df['النسبة مئوية (%)'] = ((count_df['العدد (المدارس)'] / total_filtered_len) * 100).round(1)
+                count_df = count_df.sort_values(by='العدد (المدارس)', ascending=False)
+                
+                col_l, col_r = st.columns(2)
+                with col_l:
+                    st.dataframe(count_df, use_container_width=True, hide_index=True)
+                with col_r:
+                    y_axis_col = 'العدد (المدارس)'
+                    fig = px.bar(count_df, x=col_name, y=y_axis_col, text=y_axis_col, color_discrete_sequence=noor_palette)
+                    fig.update_layout(height=260, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='rgba(0,0,0,0)')
+                    st.plotly_chart(fig, use_container_width=True)
+            else:
