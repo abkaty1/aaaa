@@ -67,9 +67,9 @@ if uploaded_file is not None:
     all_cols = df.columns.tolist()
     
     # محرك الربط الذكي بالخلفية للتعرف على الحقول تلقائياً
-    col_edu_type = next((c for c in all_cols if any(k in c for k in ['نوع التعليم', 'التعليم', 'تعليم'])), all_cols[0] if all_cols else None)
-    col_dept     = next((c for c in all_cols if any(k in c for k in ['قسم', 'القسم'])), all_cols[1] if len(all_cols) > 1 else None)
-    col_gender   = next((c for c in all_cols if any(k in c for k in ['الجنس', 'جنس', 'النوع', 'نوع'])), all_cols[2] if len(all_cols) > 2 else None)
+    col_edu_type = next((c for c in all_cols if any(k in c for k in ['نوع التعليم', 'التعليم', 'تعليم'])), all_cols if all_cols else None)
+    col_dept     = next((c for c in all_cols if any(k in c for k in ['قسم', 'القسم'])), all_cols if len(all_cols) > 1 else None)
+    col_gender   = next((c for c in all_cols if any(k in c for k in ['الجنس', 'جنس', 'النوع', 'نوع'])), all_cols if len(all_cols) > 2 else None)
     col_students = next((c for c in all_cols if any(k in c for k in ['طلاب', 'الطلاب', 'طالب', 'عدد الطلاب'])), None)
     col_schools  = next((c for c in all_cols if any(k in c for k in ['عدد المدارس', 'المدارس', 'مدرسة'])), None)
 
@@ -187,11 +187,10 @@ if uploaded_file is not None:
                 
                 total_filtered_len = len(filtered_df) if len(filtered_df) > 0 else 1
                 
-                # تجميع السجلات والطلاب تجميعاً صامتاً ومباشراً لمنع تعطل الألسنة والرسوم
+                # استخدام دالة التحليل الآمنة والمباشرة لتفادي فتح وخلط أسطر الأقواس نهائياً
                 count_series = filtered_df.groupby(col_name).size()
                 
                 if col_students and col_students in filtered_df.columns:
                     sum_series = filtered_df.groupby(col_name)[col_students].sum()
-                    count_df = pd.DataFrame({
-                        'العدد (المدارس)': count_series,
-                        'إجمالي عدد الطلاب': sum_series
+                    
+                    # دمج السلاسل من خلال طريقة التجميع الخالية من الأقواس المتعرجة المعقدة
