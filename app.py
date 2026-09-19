@@ -105,7 +105,9 @@ if uploaded_file is not None:
             opts_gender = ["الكل"] + df[col_gender].dropna().unique().tolist()
             sel_gender = st.selectbox("👥 الجنس / النوع:", opts_gender)
             if sel_gender != "الكل": filtered_df = filtered_df[filtered_df[col_gender] == sel_gender]
-        else: st.caption("❌ حقل 'الجنس' غير موجود")
+        else: 
+            st.caption("❌ حقل 'الجنس' غير موجود")
+            sel_gender = "الكل"
 
     st.markdown("---")
 
@@ -197,5 +199,3 @@ if uploaded_file is not None:
     
     # 7. استعراض الجدول الكامل المفرز بنمط نظام نور للبيانات
     with st.expander("👀 استعراض بيان البيانات المفرزة الكامل"):
-        st.dataframe(filtered_df, use_container_width=True)
-else:
