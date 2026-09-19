@@ -74,11 +74,10 @@ if uploaded_file is not None:
     # محرك البحث الذكي لأعمدة أعداد المدارس
     col_schools  = next((c for c in all_cols if any(k in c for k in ['مدارس', 'المدارس', 'مدرسة', 'عدد المدارس'])), None)
     
-    # خيار تحديد حقل "عدد الطلاب" يدوياً للتأكد من ربط الرقم بشكل صحيح
+    # خيار تحديد حقل "عدد الطلاب" من القائمة الجانبية
     st.sidebar.markdown("---")
     st.sidebar.markdown("<h4 style='color: #12543e;'>⚙️ إعدادات الحقول الرقمية</h4>", unsafe_allow_html=True)
     
-    # محاولة إيجاد حقل الطلاب افتراضياً
     default_stud_col = next((c for c in all_cols if any(k in c for k in ['طلاب', 'الطلاب', 'طالب', 'عدد الطلاب'])), all_cols[0])
     
     col_students = st.sidebar.selectbox(
@@ -123,29 +122,30 @@ if uploaded_file is not None:
 
     st.markdown("---")
 
-    # 3. حساب القيم الكلية العامة لعرضها في بطاقات العرض العلوية الثابتة
+    # 3. حساب القيم الكلية العامة والفرعية بناء على خيارات البحث والفرز الحالية
     if col_schools:
-        global_schools_total = int(pd.to_numeric(df[col_schools], errors='coerce').sum())
+        current_schools_total = int(pd.to_numeric(filtered_df[col_schools], errors='coerce').sum())
+        global_schools_raw = int(pd.to_numeric(df[col_schools], errors='coerce').sum())
     else:
-        global_schools_total = len(df)
+        current_schools_total = len(filtered_df)
+        global_schools_raw = len(df)
         
     if col_students:
-        global_students_total = int(pd.to_numeric(df[col_students], errors='coerce').sum())
+        current_students_total = int(pd.to_numeric(filtered_df[col_students], errors='coerce').sum())
+        global_students_raw = int(pd.to_numeric(df[col_students], errors='coerce').sum())
     else:
-        global_students_total = 0
+        current_students_total = 0
+        global_students_raw = 0
 
-    # 4. عرض بطاقات التقارير الإجمالية العامة والشاملة (نور ديزاين)
+    # 4. عرض بطاقات التقارير الإجمالية العامة المحدثة ديناميكياً عند تحديد الفلاتر
     st.markdown("### 📈 الخلاصة الإحصائية العامة للبيانات")
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
-        st.markdown(f"<div class='stat-card'><div class='stat-title'>📊 إجمالي السجلات الحالية</div><div class='stat-val'>{len(filtered_df)} <span style='font-size:12px; color:#64748B;'>من {len(df)}</span></div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='stat-card'><div class='stat-title'>📊 السجلات المحددة</div><div class='stat-val'>{len(filtered_df)} <span style='font-size:12px; color:#64748B;'>من {len(df)}</span></div></div>", unsafe_allow_html=True)
     with c2:
-        st.markdown(f"<div class='stat-card'><div class='stat-title'>🏢 المجموع الكلي للمدارس</div><div class='stat-val'>{global_schools_total:,} مدرسة</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='stat-card'><div class='stat-title'>🏢 إجمالي المدارس الحالية</div><div class='stat-val'>{current_schools_total:,} <span style='font-size:12px; color:#64748B;'>من {global_schools_raw:,}</span></div></div>", unsafe_allow_html=True)
     with c3:
-        if global_students_total > 0:
-            st.markdown(f"<div class='stat-card'><div class='stat-title'>👥 المجموع الكلي للطلاب</div><div class='stat-val'>{global_students_total:,} طالب</div></div>", unsafe_allow_html=True)
-        else:
-            st.markdown(f"<div class='stat-card'><div class='stat-title'>👥 المجموع الكلي للطلاب</div><div class='stat-val' style='font-size:14px; color:#94a3b8;'>0 طالب</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='stat-card'><div class='stat-title'>👥 إجمالي الطلاب الحالي</div><div class='stat-val'>{current_students_total:,} <span style='font-size:12px; color:#64748B;'>من {global_students_raw:,}</span></div></div>", unsafe_allow_html=True)
     with c4:
         val = filtered_df[col_dept].nunique() if col_dept else 0
         st.markdown(f"<div class='stat-card'><div class='stat-title'>🗂️ الأقسام النشطة</div><div class='stat-val'>{val}</div></div>", unsafe_allow_html=True)
@@ -153,7 +153,7 @@ if uploaded_file is not None:
         val = filtered_df[col_gender].nunique() if col_gender else 0
         st.markdown(f"<div class='stat-card'><div class='stat-title'>👥 الفئات المستهدفة</div><div class='stat-val'>{val}</div></div>", unsafe_allow_html=True)
 
-    # 5. قسم المجمعات الذكية المشروطة (في حال تحديد القسم ونوع التعليم معاً)
+    # 5. قسم المجمعات المشروطة الإضافية في حال تحديد القسم ونوع التعليم معاً
     if sel_edu != "الكل" and sel_dept != "الكل":
         st.markdown("### 🎯 إحصائيات المطابقة الخاصة بالقسم ونوع التعليم المحددين")
         sc1, sc2 = st.columns(2)
@@ -202,4 +202,3 @@ if uploaded_file is not None:
                     st.dataframe(count_df, use_container_width=True, hide_index=True)
                 with col_r:
                     fig = px.bar(count_df, x=col_name, y='العدد', text='العدد', color_discrete_sequence=noor_palette)
-                    fig.update_layout(height=260, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='rgba(0,0,0,0)')
