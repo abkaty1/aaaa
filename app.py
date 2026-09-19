@@ -197,7 +197,9 @@ if uploaded_file is not None:
 
     st.markdown("---")
     
-    # 7. استعراض الجدول الكامل المفرز (تم تبسيط النص لتجنب خطأ المسافات تماماً)
+    # 7. استعراض الجدول الكامل المفرز
     with st.expander("Data Show"):
         st.dataframe(filtered_df, use_container_width=True)
+
 else:
+    st.info("💡 يرجى رفع ملف البيانات لتنشيط لوحة المؤشرات الإحصائية.")
