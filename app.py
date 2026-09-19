@@ -30,8 +30,18 @@ st.markdown("""
         text-align: center;
         margin-bottom: 20px;
     }
+    .stat-card-special {
+        background-color: #f0fdf4;
+        padding: 18px;
+        border-radius: 8px;
+        border-top: 4px solid #16a34a;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        text-align: center;
+        margin-bottom: 20px;
+    }
     .stat-title { color: #64748B; font-size: 14px; font-weight: bold; }
     .stat-val { color: #12543e; font-size: 26px; font-weight: bold; padding-top: 5px; }
+    .stat-val-special { color: #166534; font-size: 28px; font-weight: bold; padding-top: 5px; }
     /* تنسيق الفلاتر */
     div[data-testid="stExpander"] { border: 1px solid #e2e8f0; border-radius: 8px; }
     </style>
@@ -45,7 +55,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# رفع الملف من القائمة الجانبية للحفاظ على الترتيب العلوي للفلاتر
+# رفع الملف من القائمة الجانبية
 st.sidebar.markdown("<h3 style='color: #12543e; text-align:center;'>📂 بوابة رفع الملفات</h3>", unsafe_allow_html=True)
 uploaded_file = st.sidebar.file_uploader("يرجى اختيار أو سحب ملف البيانات (Excel / CSV)", type=["xlsx", "csv"])
 
@@ -55,43 +65,75 @@ if uploaded_file is not None:
     df.columns = df.columns.str.strip()
     all_cols = df.columns.tolist()
     
-    # محرك البحث الذكي للربط التلقائي للأعمدة المتبقية
+    # محرك البحث الذكي لربط حقول الفرز والتجميع
     col_edu_type = next((c for c in all_cols if any(k in c for k in ['نوع التعليم', 'التعليم'])), None)
     col_dept     = next((c for c in all_cols if any(k in c for k in ['قسم', 'القسم'])), None)
     col_gender   = next((c for c in all_cols if any(k in c for k in ['الجنس', 'جنس', 'النوع', 'نوع'])), None)
+    
+    # محرك البحث الذكي لأعمدة أعداد المدارس والطلاب لإجراء العمليات الحسابية
+    col_students = next((c for c in all_cols if any(k in c for k in ['طلاب', 'الطلاب', 'طالب', 'عدد الطلاب'])), None)
+    col_schools  = next((c for c in all_cols if any(k in c for k in ['مدارس', 'المدارس', 'مدرسة', 'عدد المدارس'])), None)
 
-    # 2. لوحة الفلاتر العلوية على شكل قوائم منسدلة (نظام نور) - تم تقليصها لـ 3 فلاتر فقط
+    # 2. لوحة الفلاتر العلوية على شكل قوائم منسدلة (نظام نور)
     st.markdown("### 🔍 محددات البحث والفرز")
     
-    # توزيع القوائم المنسدلة الثلاثة في شبكة متناسقة
     row_c1, row_c2, row_c3 = st.columns(3)
     filtered_df = df.copy()
 
-    # الفلاتر المنسدلة الثلاثة المتبقية
+    # القوائم المنسدلة الثلاثة
     with row_c1:
         if col_edu_type:
-            opts = ["الكل"] + df[col_edu_type].dropna().unique().tolist()
-            sel = st.selectbox("🎓 نوع التعليم:", opts)
-            if sel != "الكل": filtered_df = filtered_df[filtered_df[col_edu_type] == sel]
-        else: st.caption("❌ حقل 'نوع التعليم' غير موجود")
+            opts_edu = ["الكل"] + df[col_edu_type].dropna().unique().tolist()
+            sel_edu = st.selectbox("🎓 نوع التعليم:", opts_edu)
+            if sel_edu != "الكل": filtered_df = filtered_df[filtered_df[col_edu_type] == sel_edu]
+        else: 
+            st.caption("❌ حقل 'نوع التعليم' غير موجود")
+            sel_edu = "الكل"
 
     with row_c2:
         if col_dept:
-            opts = ["الكل"] + df[col_dept].dropna().unique().tolist()
-            sel = st.selectbox("🗂️ القسم:", opts)
-            if sel != "الكل": filtered_df = filtered_df[filtered_df[col_dept] == sel]
-        else: st.caption("❌ حقل 'القسم' غير موجود")
+            opts_dept = ["الكل"] + df[col_dept].dropna().unique().tolist()
+            sel_dept = st.selectbox("🗂️ القسم:", opts_dept)
+            if sel_dept != "الكل": filtered_df = filtered_df[filtered_df[col_dept] == sel_dept]
+        else: 
+            st.caption("❌ حقل 'القسم' غير موجود")
+            sel_dept = "الكل"
 
     with row_c3:
         if col_gender:
-            opts = ["الكل"] + df[col_gender].dropna().unique().tolist()
-            sel = st.selectbox("👥 الجنس / النوع:", opts)
-            if sel != "الكل": filtered_df = filtered_df[filtered_df[col_gender] == sel]
+            opts_gender = ["الكل"] + df[col_gender].dropna().unique().tolist()
+            sel_gender = st.selectbox("👥 الجنس / النوع:", opts_gender)
+            if sel_gender != "الكل": filtered_df = filtered_df[filtered_df[col_gender] == sel_gender]
         else: st.caption("❌ حقل 'الجنس' غير موجود")
 
     st.markdown("---")
 
-    # 3. عرض بطاقات التقارير الإجمالية (نور ديزاين)
+    # 3. قسم المجمعات الذكية المشروطة (في حال تحديد القسم ونوع التعليم معاً)
+    if sel_edu != "الكل" and sel_dept != "الكل":
+        st.markdown("### 🎯 إحصائيات المطابقة الخاصة بالقسم ونوع التعليم المحددين")
+        sc1, sc2 = st.columns(2)
+        
+        with sc1:
+            if col_schools:
+                # حساب مجموع المدارس من العمود المخصص في البيانات المفلترة
+                total_schools_sum = pd.to_numeric(filtered_df[col_schools], errors='coerce').sum()
+                st.markdown(f"<div class='stat-card-special'><div class='stat-title'>🏢 مجموع المدارس</div><div class='stat-val-special'>{int(total_schools_sum):,} مدرسة</div></div>", unsafe_allow_html=True)
+            else:
+                # في حال لم يجد عمود رقمي خاص، يقوم بعد الأسطر كبديل ذكي للمدارس
+                st.markdown(f"<div class='stat-card-special'><div class='stat-title'>🏢 مجموع المدارس (عدد السجلات)</div><div class='stat-val-special'>{len(filtered_df):,} مدرسة</div></div>", unsafe_allow_html=True)
+                
+        with sc2:
+            if col_students:
+                # حساب مجموع الطلاب من العمود المخصص
+                total_students_sum = pd.to_numeric(filtered_df[col_students], errors='coerce').sum()
+                st.markdown(f"<div class='stat-card-special'><div class='stat-title'>👥 مجموع الطلاب وطالبتنا</div><div class='stat-val-special'>{int(total_students_sum):,} طالب / طالبة</div></div>", unsafe_allow_html=True)
+            else:
+                st.markdown("<div class='stat-card-special'><div class='stat-title'>👥 مجموع الطلاب</div><div class='stat-val-special' style='font-size:16px; color:#991b1b;'>لم يتم العثور على حقل أعداد الطلاب بالملف لحسابه</div></div>", unsafe_allow_html=True)
+                
+        st.markdown("---")
+
+    # 4. عرض بطاقات التقارير الإجمالية العامة (نور ديزاين)
+    st.markdown("### 📈 الخلاصة الإحصائية العامة للبيانات")
     c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown(f"<div class='stat-card'><div class='stat-title'>📊 إجمالي السجلات الحالية</div><div class='stat-val'>{len(filtered_df)} <span style='font-size:13px; color:#64748B;'>من {len(df)}</span></div></div>", unsafe_allow_html=True)
@@ -102,7 +144,7 @@ if uploaded_file is not None:
         val = filtered_df[col_gender].nunique() if col_gender else 0
         st.markdown(f"<div class='stat-card'><div class='stat-title'>👥 الفئات المستهدفة (الجنس)</div><div class='stat-val'>{val}</div></div>", unsafe_allow_html=True)
 
-    # 4. ألسنة تفصيلية إحصائية مريحة للعين مع رسوم بيانية منسقة (3 ألسنة فقط)
+    # 5. ألسنة تفصيلية إحصائية مريحة للعين مع رسوم بيانية منسقة
     st.markdown("### 📊 الجداول والبيانات التحليلية")
     tab1, tab2, tab3 = st.tabs([
         "🎓 نوع التعليم", "🗂️ الأقسام", "👥 الجنس"
@@ -137,7 +179,7 @@ if uploaded_file is not None:
 
     st.markdown("---")
     
-    # 5. : استعراض الجدول الكامل المفرز بنمط نظام نور للبيانات
+    # 6. استعراض الجدول الكامل المفرز بنمط نظام نور للبيانات
     with st.expander("👀 استعراض بيان البيانات المفرزة الكامل"):
         st.dataframe(filtered_df, use_container_width=True)
 else:
