@@ -56,7 +56,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# رفع الملف من القائمة الجانبية (تم إلغاء قسم إعدادات الربط تماماً)
+# رفع الملف من القائمة الجانبية
 st.sidebar.markdown("<h3 style='color: #12543e; text-align:center;'>📂 بوابة رفع الملفات</h3>", unsafe_allow_html=True)
 uploaded_file = st.sidebar.file_uploader("يرجى اختيار أو سحب ملف البيانات (Excel / CSV)", type=["xlsx", "csv"])
 
@@ -66,7 +66,7 @@ if uploaded_file is not None:
     df.columns = df.columns.str.strip()
     all_cols = df.columns.tolist()
     
-    # 🕵️ محرك الربط الذكي الصامت بالخلفية للتعرف على حقولك تلقائياً دون تدخل منك
+    # محرك الربط الذكي بالخلفية للتعرف على الحقول تلقائياً
     col_edu_type = next((c for c in all_cols if any(k in c for k in ['نوع التعليم', 'التعليم', 'تعليم'])), all_cols[0] if all_cols else None)
     col_dept     = next((c for c in all_cols if any(k in c for k in ['قسم', 'القسم'])), all_cols[1] if len(all_cols) > 1 else None)
     col_gender   = next((c for c in all_cols if any(k in c for k in ['الجنس', 'جنس', 'النوع', 'نوع'])), all_cols[2] if len(all_cols) > 2 else None)
@@ -93,7 +93,6 @@ if uploaded_file is not None:
             if sel_edu != "الكل": 
                 filtered_df = filtered_df[filtered_df[col_edu_type] == sel_edu]
         else:
-            st.caption("❌ لم يتم العثور على حقل نوع التعليم")
             sel_edu = "الكل"
 
     with row_c2:
@@ -103,7 +102,6 @@ if uploaded_file is not None:
             if sel_dept != "الكل": 
                 filtered_df = filtered_df[filtered_df[col_dept] == sel_dept]
         else:
-            st.caption("❌ لم يتم العثور على حقل القسم")
             sel_dept = "الكل"
 
     with row_c3:
@@ -113,7 +111,6 @@ if uploaded_file is not None:
             if sel_gender != "الكل": 
                 filtered_df = filtered_df[filtered_df[col_gender] == sel_gender]
         else:
-            st.caption("❌ لم يتم العثور على حقل الجنس")
             sel_gender = "الكل"
 
     st.markdown("---")
@@ -194,3 +191,7 @@ if uploaded_file is not None:
                 count_series = filtered_df.groupby(col_name).size()
                 
                 if col_students and col_students in filtered_df.columns:
+                    sum_series = filtered_df.groupby(col_name)[col_students].sum()
+                    count_df = pd.DataFrame({
+                        'العدد (المدارس)': count_series,
+                        'إجمالي عدد الطلاب': sum_series
