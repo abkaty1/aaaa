@@ -115,7 +115,7 @@ if uploaded_file is not None:
 
     st.markdown("---")
 
-    # 3. حساب القيم الكلية العامة والفرعية الحالية المحدثة ديناميكياً
+    # 3. حساب القيم الكلية العامة والفرعية الحالية المحدثة ديناميكياً بناءً على السجلات
     if col_schools and col_schools in filtered_df.columns:
         current_schools_total = int(filtered_df[col_schools].sum())
         global_schools_raw = int(df[col_schools].sum())
@@ -130,23 +130,21 @@ if uploaded_file is not None:
         current_students_total = 0
         global_students_raw = 0
 
-    # 4. عرض بطاقات التقارير الإجمالية العامة المحدثة ديناميكياً عند الفرز والتصفية
+    # 4. عرض بطاقات التقارير الإجمالية العامة المحدثة (تعديل مسمى مجموع المدارس وحذف الإجمالي المكرر)
     st.markdown("### 📈 الخلاصة الإحصائية العامة للبيانات")
-    c1, c2, c3, c4, c5 = st.columns(5)
+    c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.markdown(f"<div class='stat-card'><div class='stat-title'>📊 السجلات المحددة</div><div class='stat-val'>{len(filtered_df)} <span style='font-size:12px; color:#64748B;'>من {len(df)}</span></div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='stat-card'><div class='stat-title'>🏢 مجموع المدارس</div><div class='stat-val'>{current_schools_total:,} <span style='font-size:12px; color:#64748B;'>من {global_schools_raw:,}</span></div></div>", unsafe_allow_html=True)
     with c2:
-        st.markdown(f"<div class='stat-card'><div class='stat-title'>🏢 إجمالي المدارس الحالية</div><div class='stat-val'>{current_schools_total:,} <span style='font-size:12px; color:#64748B;'>من {global_schools_raw:,}</span></div></div>", unsafe_allow_html=True)
-    with c3:
         st.markdown(f"<div class='stat-card'><div class='stat-title'>👥 إجمالي الطلاب الحالي</div><div class='stat-val'>{current_students_total:,} <span style='font-size:12px; color:#64748B;'>من {global_students_raw:,}</span></div></div>", unsafe_allow_html=True)
-    with c4:
+    with c3:
         val = filtered_df[col_dept].nunique() if (col_dept and col_dept in filtered_df.columns) else 0
         st.markdown(f"<div class='stat-card'><div class='stat-title'>🗂️ الأقسام النشطة</div><div class='stat-val'>{val}</div></div>", unsafe_allow_html=True)
-    with c5:
+    with c4:
         val = filtered_df[col_gender].nunique() if (col_gender and col_gender in filtered_df.columns) else 0
         st.markdown(f"<div class='stat-card'><div class='stat-title'>👥 الفئات المستهدفة</div><div class='stat-val'>{val}</div></div>", unsafe_allow_html=True)
 
-    # 5. قسم المجمعات المشروطة الإضافية في حال تحديد القسم ونوع التعليم معاً
+    # 5. قسم إحصائيات المطابقة الخاصة بالقسم ونوع التعليم المحددين
     if sel_edu != "الكل" and sel_dept != "الكل":
         st.markdown("### 🎯 إحصائيات المطابقة الخاصة بالقسم ونوع التعليم المحددين")
         sc1, sc2 = st.columns(2)
@@ -156,7 +154,7 @@ if uploaded_file is not None:
                 total_schools_sum = filtered_df[col_schools].sum()
                 st.markdown(f"<div class='stat-card-special'><div class='stat-title'>🏢 مجموع المدارس المطابقة</div><div class='stat-val-special'>{int(total_schools_sum):,} مدرسة</div></div>", unsafe_allow_html=True)
             else:
-                st.markdown(f"<div class='stat-card-special'><div class='stat-title'>🏢 مجموع المدارس المطابقة (عدد السجلات)</div><div class='stat-val-special'>{len(filtered_df):,} مدرسة</div></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='stat-card-special'><div class='stat-title'>🏢 مجموع المدارس المطابقة</div><div class='stat-val-special'>{len(filtered_df):,} مدرسة</div></div>", unsafe_allow_html=True)
                 
         with sc2:
             if col_students and col_students in filtered_df.columns:
@@ -187,10 +185,14 @@ if uploaded_file is not None:
                 
                 total_filtered_len = len(filtered_df) if len(filtered_df) > 0 else 1
                 
-                # استخدام دالة التحليل الآمنة والمباشرة لتفادي فتح وخلط أسطر الأقواس نهائياً
+                # استخدام طريقة الربط التجميعي المستقر والآمن
                 count_series = filtered_df.groupby(col_name).size()
                 
                 if col_students and col_students in filtered_df.columns:
                     sum_series = filtered_df.groupby(col_name)[col_students].sum()
-                    
-                    # دمج السلاسل من خلال طريقة التجميع الخالية من الأقواس المتعرجة المعقدة
+                    count_df = pd.concat([count_series, sum_series], axis=1).reset_index()
+                    count_df.columns = [col_name, 'العدد (المدارس)', 'إجمالي عدد الطلاب']
+                else:
+                    count_df = count_series.reset_index()
+                    count_df.columns = [col_name, 'العدد (المدارس)']
+                
