@@ -71,14 +71,14 @@ if uploaded_file is not None:
     col_dept     = next((c for c in all_cols if any(k in c for k in ['قسم', 'القسم'])), None)
     col_gender   = next((c for c in all_cols if any(k in c for k in ['الجنس', 'جنس', 'النوع', 'نوع'])), None)
     
-    # محرك البحث الذكي لأعمدة أعداد المدارس
-    col_schools  = next((c for c in all_cols if any(k in c for k in ['مدارس', 'المدارس', 'مدرسة', 'عدد المدارس'])), None)
+    # محرك البحث الذكي لأعمدة أعداد المدارس (محيد هنا ليعتمد على السجلات عند الحاجة)
+    col_schools  = next((c for c in all_cols if any(k in c for k in ['عدد المدارس', 'المدارس', 'مدرسة'])), None)
     
     # خيار تحديد حقل "عدد الطلاب" من القائمة الجانبية
     st.sidebar.markdown("---")
     st.sidebar.markdown("<h4 style='color: #12543e;'>⚙️ إعدادات الحقول الرقمية</h4>", unsafe_allow_html=True)
     
-    default_stud_col = next((c for c in all_cols if any(k in c for k in ['طلاب', 'الطلاب', 'طالب', 'عدد الطلاب'])), all_cols[0] if all_cols else "")
+    default_stud_col = next((c for c in all_cols if any(k in c for k in ['طلاب', 'الطلاب', 'طالب', 'عدد الطلاب'])), all_cols if all_cols else "")
     
     col_students = st.sidebar.selectbox(
         "👥 حدد حقل (عدد الطلاب) من ملفك:",
@@ -128,7 +128,7 @@ if uploaded_file is not None:
 
     st.markdown("---")
 
-    # 3. حساب القيم الكلية العامة والفرعية بناء على خيارات البحث والفرز الحالية
+    # 3. معالجة ذكية لحساب أعداد المدارس (إذا لم يوجد عمود صريح يتم عد السجلات مباشرة)
     if col_schools:
         current_schools_total = int(filtered_df[col_schools].sum())
         global_schools_raw = int(df[col_schools].sum())
@@ -174,13 +174,13 @@ if uploaded_file is not None:
         with sc2:
             if col_students:
                 total_students_sum = filtered_df[col_students].sum()
-                st.markdown(f"<div class='stat-card-special'><div class='stat-title'>👥 مجموع الطلاب المشمولين</div><div class='stat-val-special'>{int(total_students_sum):,} طالب / طالبة</div></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='stat-card-special'><div class='stat-title'>👥 مجموع الطلاب المشمولين</div><div class='stat-val-special'>{int(total_students_sum):,} طالب</div></div>", unsafe_allow_html=True)
             else:
                 st.markdown("<div class='stat-card-special'><div class='stat-title'>👥 مجموع الطلاب المطابقين</div><div class='stat-val-special' style='font-size:16px; color:#991b1b;'>0 طالب</div></div>", unsafe_allow_html=True)
                 
         st.markdown("---")
 
-    # 6. ألسنة تفصيلية إحصائية مريحة للعين مع إدراج عمود ومخطط مجموع الطلاب بشكل آمن ومحكم
+    # 6. ألسنة تفصيلية إحصائية مريحة للعين مع بناء متين ومرن يعتمد على الأسطر
     st.markdown("### 📊 الجداول والبيانات التحليلية")
     tab1, tab2, tab3 = st.tabs([
         "🎓 نوع التعليم", "🗂️ الأقسام", "👥 الجنس"
@@ -198,11 +198,11 @@ if uploaded_file is not None:
             if col_name and col_name in filtered_df.columns:
                 st.markdown(f"**📈 مسح إحصائي لبيانات: `{col_name}`**")
                 
-                # تجميع البيانات الآمن والمباشر بدون أخطاء التسمية والرموز المفتوحة
+                # بناء جداول الإحصاء بدقة متناهية بالاعتماد على الأسطر في حال غياب عمود المدارس الصريح
+                total_filtered_len = len(filtered_df) if len(filtered_df) > 0 else 1
+                
                 if col_students:
-                    # حساب الحجم والمجموع بشكل مستقل لضمان استقرار البناء
+                    # جلب عدد السجلات (المدارس) ومجموع الطلاب لكل تصنيف بشكل آمن
                     count_series = filtered_df.groupby(col_name).size()
                     sum_series = filtered_df.groupby(col_name)[col_students].sum()
                     
-                    # دمج السلاسل في جدول واحد منظم
-                    count_df = pd.concat([count_series, sum_series], axis=1).reset_index()
