@@ -66,7 +66,7 @@ if uploaded_file is not None:
     df.columns = df.columns.str.strip()
     all_cols = df.columns.tolist()
     
-    # محرك الربط الذكي بالخلفية للتعرف على حقولك تلقائياً
+    # محرك الربط الذكي الصامت بالخلفية للتعرف على حقولك تلقائياً
     col_edu_type = next((c for c in all_cols if any(k in c for k in ['نوع التعليم', 'التعليم', 'تعليم'])), all_cols[0] if all_cols else None)
     col_dept     = next((c for c in all_cols if any(k in c for k in ['قسم', 'القسم'])), all_cols[1] if len(all_cols) > 1 else None)
     col_gender   = next((c for c in all_cols if any(k in c for k in ['الجنس', 'جنس', 'النوع', 'نوع'])), all_cols[2] if len(all_cols) > 2 else None)
@@ -154,25 +154,22 @@ if uploaded_file is not None:
                 
         st.markdown("---")
 
-    # 6. ألسنة تفصيلية إحصائية حرة ومباشرة الظهور (تم إعادة صياغتها بالكامل بنظام آمن ومحمي 100%)
+    # 6. ألسنة تفصيلية إحصائية حرة ومباشرة الظهور (تم تأمينها 100% ضد أخطاء المحاذاة والمسافات)
     st.markdown("### 📊 الجداول والبيانات التحليلية")
     tab1, tab2, tab3 = st.tabs(["🎓 نوع التعليم", "🗂️ الأقسام", "👥 الجنس"])
     
     noor_palette = ["#12543e", "#2a6f57", "#448b72", "#60a88e", "#7dc5aa", "#9be3c7"]
-    
+    total_filtered_len = len(filtered_df) if len(filtered_df) > 0 else 1
+
     # 📑 تبويب نوع التعليم
     with tab1:
         if col_edu_type and col_edu_type in filtered_df.columns:
             st.markdown(f"**📈 مسح إحصائي تحليلي لبيانات: `{col_edu_type}`**")
             c_series = filtered_df.groupby(col_edu_type).size()
-            if col_students and col_students in filtered_df.columns:
-                s_series = filtered_df.groupby(col_edu_type)[col_students].sum()
-                count_df = pd.concat([c_series, s_series], axis=1).reset_index()
-                count_df.columns = [col_edu_type, 'العدد (المدارس)', 'إجمالي عدد الطلاب']
-            else:
-                count_df = c_series.reset_index()
-                count_df.columns = [col_edu_type, 'العدد (المدارس)']
-            count_df['النسبة مئوية (%)'] = ((count_df['العدد (المدارس)'] / len(filtered_df)) * 100).round(1) if len(filtered_df) > 0 else 0
+            s_series = filtered_df.groupby(col_edu_type)[col_students].sum() if (col_students and col_students in filtered_df.columns) else pd.Series(0, index=c_series.index)
+            
+            count_df = pd.DataFrame({'العدد (المدارس)': c_series, 'إجمالي عدد الطلاب': s_series}).reset_index()
+            count_df['النسبة مئوية (%)'] = ((count_df['العدد (المدارس)'] / total_filtered_len) * 100).round(1)
             count_df = count_df.sort_values(by='العدد (المدارس)', ascending=False)
             
             cl, cr = st.columns(2)
@@ -181,16 +178,16 @@ if uploaded_file is not None:
                 fig = px.bar(count_df, x=col_edu_type, y='العدد (المدارس)', text='العدد (المدارس)', color_discrete_sequence=noor_palette)
                 fig.update_layout(height=260, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='rgba(0,0,0,0)')
                 st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("⚠️ حقل نوع التعليم غير متوفر في هذا الملف.")
 
     # 📑 تبويب الأقسام
     with tab2:
         if col_dept and col_dept in filtered_df.columns:
             st.markdown(f"**📈 مسح إحصائي تحليلي لبيانات: `{col_dept}`**")
             c_series = filtered_df.groupby(col_dept).size()
-            if col_students and col_students in filtered_df.columns:
-                s_series = filtered_df.groupby(col_dept)[col_students].sum()
-                count_df = pd.concat([c_series, s_series], axis=1).reset_index()
-                count_df.columns = [col_dept, 'العدد (المدارس)', 'إجمالي عدد الطلاب']
-            else:
+            s_series = filtered_df.groupby(col_dept)[col_students].sum() if (col_students and col_students in filtered_df.columns) else pd.Series(0, index=c_series.index)
+            
+            count_df = pd.DataFrame({'العدد (المدارس)': c_series, 'إجمالي عدد الطلاب': s_series}).reset_index()
+            count_df['النسبة مئوية (%)'] = ((count_df['العدد (المدارس)'] / total_filtered_len) * 100).round(1)
+            count_df = count_df.sort_values(by='العدد (المدارس)', ascending=False)
+            
+            cl, cr = st.columns(2)
