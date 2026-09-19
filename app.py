@@ -61,32 +61,32 @@ st.sidebar.markdown("<h3 style='color: #12543e; text-align:center;'>📂 بوا�
 uploaded_file = st.sidebar.file_uploader("يرجى اختيار أو سحب ملف البيانات (Excel / CSV)", type=["xlsx", "csv"])
 
 if uploaded_file is not None:
-    # قراءة البيانات
+    # قراءة البيانات وتجهيزها
     df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
     df.columns = df.columns.str.strip()
     all_cols = df.columns.tolist()
     
-    # محرك البحث الذكي لربط حقول الفرز والتجميع
-    col_edu_type = next((c for c in all_cols if any(k in c for k in ['نوع التعليم', 'التعليم'])), None)
-    col_dept     = next((c for c in all_cols if any(k in c for k in ['قسم', 'القسم'])), None)
-    col_gender   = next((c for c in all_cols if any(k in c for k in ['الجنس', 'جنس', 'النوع', 'نوع'])), None)
-    
-    # محرك البحث الذكي لأعمدة أعداد المدارس (محيد هنا ليعتمد على السجلات عند الحاجة)
-    col_schools  = next((c for c in all_cols if any(k in c for k in ['عدد المدارس', 'المدارس', 'مدرسة'])), None)
-    
-    # خيار تحديد حقل "عدد الطلاب" من القائمة الجانبية
+    # ⚙️ ربط وتعيين الحقول يدوياً أو آلياً من القائمة الجانبية لحل مشكلة عدم ظهور الجداول
     st.sidebar.markdown("---")
-    st.sidebar.markdown("<h4 style='color: #12543e;'>⚙️ إعدادات الحقول الرقمية</h4>", unsafe_allow_html=True)
+    st.sidebar.markdown("<h4 style='color: #12543e;'>⚙️ إعدادات ربط حقول الملف</h4>", unsafe_allow_html=True)
     
-    default_stud_col = next((c for c in all_cols if any(k in c for k in ['طلاب', 'الطلاب', 'طالب', 'عدد الطلاب'])), all_cols if all_cols else "")
-    
-    col_students = st.sidebar.selectbox(
-        "👥 حدد حقل (عدد الطلاب) من ملفك:",
-        options=all_cols,
-        index=all_cols.index(default_stud_col) if default_stud_col in all_cols else 0
-    )
+    # محرك بحث ذكي للمحاولة الافتراضية
+    def_edu = next((c for c in all_cols if any(k in c for k in ['نوع التعليم', 'التعليم'])), all_cols[0] if all_cols else "")
+    def_dep = next((c for c in all_cols if any(k in c for k in ['قسم', 'القسم'])), all_cols[0] if all_cols else "")
+    def_gen = next((c for c in all_cols if any(k in c for k in ['الجنس', 'جنس', 'النوع', 'نوع'])), all_cols[0] if all_cols else "")
+    def_stu = next((c for c in all_cols if any(k in c for k in ['طلاب', 'الطلاب', 'طالب'])), all_cols[0] if all_cols else "")
+    def_sch = next((c for c in all_cols if any(k in c for k in ['عدد المدارس', 'المدارس', 'مدرسة'])), None)
 
-    # تحويل الحقول إلى قيم رقمية لتفادي أي مشاكل حسابية أو نصية
+    # اختيار يدوي مباشر من قبل المستخدم لضمان المطابقة الكاملة
+    col_edu_type = st.sidebar.selectbox("📖 حقل (نوع التعليم):", all_cols, index=all_cols.index(def_edu) if def_edu in all_cols else 0)
+    col_dept     = st.sidebar.selectbox("🗂️ حقل (القسم):", all_cols, index=all_cols.index(def_dep) if def_dep in all_cols else 0)
+    col_gender   = st.sidebar.selectbox("👥 حقل (الجنس):", all_cols, index=all_cols.index(def_gen) if def_gen in all_cols else 0)
+    col_students = st.sidebar.selectbox("👥 حقل (عدد الطلاب):", all_cols, index=all_cols.index(def_stu) if def_stu in all_cols else 0)
+    
+    # ربط اختياري لعمود المدارس في حال توفره برقم مخصص
+    col_schools = def_sch
+
+    # تحويل البيانات إلى أرقام بشكل آمن لمنع الأخطاء الحسابية
     if col_students:
         df[col_students] = pd.to_numeric(df[col_students], errors='coerce').fillna(0)
     if col_schools:
@@ -98,45 +98,36 @@ if uploaded_file is not None:
     row_c1, row_c2, row_c3 = st.columns(3)
     filtered_df = df.copy()
 
-    # القوائم المنسدلة الثلاثة
+    # القوائم المنسدلة الثلاثة المعتمدة على اختيارك الجانبي
     with row_c1:
-        if col_edu_type:
-            opts_edu = ["الكل"] + df[col_edu_type].dropna().unique().tolist()
-            sel_edu = st.selectbox("🎓 نوع التعليم:", opts_edu)
-            if sel_edu != "الكل": filtered_df = filtered_df[filtered_df[col_edu_type] == sel_edu]
-        else: 
-            st.caption("❌ حقل 'نوع التعليم' غير موجود")
-            sel_edu = "الكل"
+        opts_edu = ["الكل"] + df[col_edu_type].dropna().unique().tolist()
+        sel_edu = st.selectbox("🎓 نوع التعليم:", opts_edu)
+        if sel_edu != "الكل": 
+            filtered_df = filtered_df[filtered_df[col_edu_type] == sel_edu]
 
     with row_c2:
-        if col_dept:
-            opts_dept = ["الكل"] + df[col_dept].dropna().unique().tolist()
-            sel_dept = st.selectbox("🗂️ القسم:", opts_dept)
-            if sel_dept != "الكل": filtered_df = filtered_df[filtered_df[col_dept] == sel_dept]
-        else: 
-            st.caption("❌ حقل 'القسم' غير موجود")
-            sel_dept = "الكل"
+        opts_dept = ["الكل"] + df[col_dept].dropna().unique().tolist()
+        sel_dept = st.selectbox("🗂️ القسم:", opts_dept)
+        if sel_dept != "الكل": 
+            filtered_df = filtered_df[filtered_df[col_dept] == sel_dept]
 
     with row_c3:
-        if col_gender:
-            opts_gender = ["الكل"] + df[col_gender].dropna().unique().tolist()
-            sel_gender = st.selectbox("👥 الجنس / النوع:", opts_gender)
-            if sel_gender != "الكل": filtered_df = filtered_df[filtered_df[col_gender] == sel_gender]
-        else: 
-            st.caption("❌ حقل 'الجنس' غير موجود")
-            sel_gender = "الكل"
+        opts_gender = ["الكل"] + df[col_gender].dropna().unique().tolist()
+        sel_gender = st.selectbox("👥 الجنس / النوع:", opts_gender)
+        if sel_gender != "الكل": 
+            filtered_df = filtered_df[filtered_df[col_gender] == sel_gender]
 
     st.markdown("---")
 
-    # 3. معالجة ذكية لحساب أعداد المدارس (إذا لم يوجد عمود صريح يتم عد السجلات مباشرة)
-    if col_schools:
+    # 3. حساب القيم الكلية العامة والفرعية الحالية المحدثة ديناميكياً
+    if col_schools and col_schools in filtered_df.columns:
         current_schools_total = int(filtered_df[col_schools].sum())
         global_schools_raw = int(df[col_schools].sum())
     else:
         current_schools_total = len(filtered_df)
         global_schools_raw = len(df)
         
-    if col_students:
+    if col_students and col_students in filtered_df.columns:
         current_students_total = int(filtered_df[col_students].sum())
         global_students_raw = int(df[col_students].sum())
     else:
@@ -165,14 +156,14 @@ if uploaded_file is not None:
         sc1, sc2 = st.columns(2)
         
         with sc1:
-            if col_schools:
+            if col_schools and col_schools in filtered_df.columns:
                 total_schools_sum = filtered_df[col_schools].sum()
                 st.markdown(f"<div class='stat-card-special'><div class='stat-title'>🏢 مجموع المدارس المطابقة</div><div class='stat-val-special'>{int(total_schools_sum):,} مدرسة</div></div>", unsafe_allow_html=True)
             else:
                 st.markdown(f"<div class='stat-card-special'><div class='stat-title'>🏢 مجموع المدارس المطابقة (عدد السجلات)</div><div class='stat-val-special'>{len(filtered_df):,} مدرسة</div></div>", unsafe_allow_html=True)
                 
         with sc2:
-            if col_students:
+            if col_students and col_students in filtered_df.columns:
                 total_students_sum = filtered_df[col_students].sum()
                 st.markdown(f"<div class='stat-card-special'><div class='stat-title'>👥 مجموع الطلاب المشمولين</div><div class='stat-val-special'>{int(total_students_sum):,} طالب</div></div>", unsafe_allow_html=True)
             else:
@@ -180,7 +171,7 @@ if uploaded_file is not None:
                 
         st.markdown("---")
 
-    # 6. ألسنة تفصيلية إحصائية مريحة للعين مع بناء متين ومرن يعتمد على الأسطر
+    # 6. ألسنة تفصيلية إحصائية مريحة للعين مع بناء متين ومرن يعتمد على الأسطر المضمونة للظهور
     st.markdown("### 📊 الجداول والبيانات التحليلية")
     tab1, tab2, tab3 = st.tabs([
         "🎓 نوع التعليم", "🗂️ الأقسام", "👥 الجنس"
@@ -198,11 +189,6 @@ if uploaded_file is not None:
             if col_name and col_name in filtered_df.columns:
                 st.markdown(f"**📈 مسح إحصائي لبيانات: `{col_name}`**")
                 
-                # بناء جداول الإحصاء بدقة متناهية بالاعتماد على الأسطر في حال غياب عمود المدارس الصريح
                 total_filtered_len = len(filtered_df) if len(filtered_df) > 0 else 1
                 
-                if col_students:
-                    # جلب عدد السجلات (المدارس) ومجموع الطلاب لكل تصنيف بشكل آمن
-                    count_series = filtered_df.groupby(col_name).size()
-                    sum_series = filtered_df.groupby(col_name)[col_students].sum()
-                    
+                # حساب الإحصائيات بالاعتماد على الأعمدة التي تم تأكيد ربطها من القائمة المنسدلة
