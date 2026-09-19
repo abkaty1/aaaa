@@ -45,7 +45,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# رفع الملف من القائمة الجانبية للحفاظ على الترتيب العلوى للفلاتر
+# رفع الملف من القائمة الجانبية للحفاظ على الترتيب العلوي للفلاتر
 st.sidebar.markdown("<h3 style='color: #12543e; text-align:center;'>📂 بوابة رفع الملفات</h3>", unsafe_allow_html=True)
 uploaded_file = st.sidebar.file_uploader("يرجى اختيار أو سحب ملف البيانات (Excel / CSV)", type=["xlsx", "csv"])
 
@@ -55,61 +55,43 @@ if uploaded_file is not None:
     df.columns = df.columns.str.strip()
     all_cols = df.columns.tolist()
     
-    # محرك البحث الذكي للربط التلقائي للأعمدة
+    # محرك البحث الذكي للربط التلقائي للأعمدة المتبقية
     col_edu_type = next((c for c in all_cols if any(k in c for k in ['نوع التعليم', 'التعليم'])), None)
-    col_office   = next((c for c in all_cols if any(k in c for k in ['مكتب', 'المكتب'])), None)
-    col_unit     = next((c for c in all_cols if any(k in c for k in ['وحدة', 'الوحدة'])), None)
     col_dept     = next((c for c in all_cols if any(k in c for k in ['قسم', 'القسم'])), None)
-    col_stage    = next((c for c in all_cols if any(k in c for k in ['المرحلة', 'مرحلة'])), None)
-    col_gender   = next((c for c in all_cols if any(k in c for k in ['الجنس', 'جنس', 'النوع'])), None)
+    col_stage    = next((c for c in all_cols if any(k in c for k in ['المرحلة', 'مرحلة', 'المرحله', 'مرحله'])), None)
+    col_gender   = next((c for c in all_cols if any(k in c for k in ['الجنس', 'جنس', 'النوع', 'نوع'])), None)
 
-    # 2. لوحة الفلاتر العلوية على شكل قوائم منسدلة (نظام نور)
+    # 2. لوحة الفلاتر العلوية على شكل قوائم منسدلة (نظام نور) - تم تقليصها لـ 4 فلاتر فقط
     st.markdown("### 🔍 محددات البحث والفرز")
     
-    # توزيع القوائم المنسدلة الستة في شبكة مرتبة (3 أعمدة في صفين)
-    row1_c1, row1_c2, row1_c3 = st.columns(3)
-    row2_c1, row2_c2, row2_c3 = st.columns(3)
+    # توزيع القوائم المنسدلة الأربعة في شبكة مرتبة (عمودان في صفين أو 4 أعمدة في صف واحد)
+    row_c1, row_c2, row_c3, row_c4 = st.columns(4)
     
     filtered_df = df.copy()
 
-    # الصف الأول من الفلاتر المنسدلة
-    with row1_c1:
+    # الفلاتر المنسدلة الأربعة المتبقية
+    with row_c1:
         if col_edu_type:
             opts = ["الكل"] + df[col_edu_type].dropna().unique().tolist()
             sel = st.selectbox("🎓 نوع التعليم:", opts)
             if sel != "الكل": filtered_df = filtered_df[filtered_df[col_edu_type] == sel]
         else: st.caption("❌ حقل 'نوع التعليم' غير موجود")
 
-    with row1_c2:
-        if col_office:
-            opts = ["الكل"] + df[col_office].dropna().unique().tolist()
-            sel = st.selectbox("🏢 المكتب:", opts)
-            if sel != "الكل": filtered_df = filtered_df[filtered_df[col_office] == sel]
-        else: st.caption("❌ حقل 'المكتب' غير موجود")
-
-    with row1_c3:
-        if col_unit:
-            opts = ["الكل"] + df[col_unit].dropna().unique().tolist()
-            sel = st.selectbox("⚙️ الوحدة:", opts)
-            if sel != "الكل": filtered_df = filtered_df[filtered_df[col_unit] == sel]
-        else: st.caption("❌ حقل 'الوحدة' غير موجود")
-
-    # الصف الثاني من الفلاتر المنسدلة
-    with row2_c1:
+    with row_c2:
         if col_dept:
             opts = ["الكل"] + df[col_dept].dropna().unique().tolist()
             sel = st.selectbox("🗂️ القسم:", opts)
             if sel != "الكل": filtered_df = filtered_df[filtered_df[col_dept] == sel]
         else: st.caption("❌ حقل 'القسم' غير موجود")
 
-    with row2_c2:
+    with row_c3:
         if col_stage:
             opts = ["الكل"] + df[col_stage].dropna().unique().tolist()
             sel = st.selectbox("🏫 المرحلة الدراسية:", opts)
             if sel != "الكل": filtered_df = filtered_df[filtered_df[col_stage] == sel]
         else: st.caption("❌ حقل 'المرحلة' غير موجود")
 
-    with row2_c3:
+    with row_c4:
         if col_gender:
             opts = ["الكل"] + df[col_gender].dropna().unique().tolist()
             sel = st.selectbox("👥 الجنس / النوع:", opts)
@@ -123,27 +105,28 @@ if uploaded_file is not None:
     with c1:
         st.markdown(f"<div class='stat-card'><div class='stat-title'>📊 إجمالي السجلات الحالية</div><div class='stat-val'>{len(filtered_df)} <span style='font-size:13px; color:#64748B;'>من {len(df)}</span></div></div>", unsafe_allow_html=True)
     with c2:
-        val = filtered_df[col_office].nunique() if col_office else 0
-        st.markdown(f"<div class='stat-card'><div class='stat-title'>🏢 المكاتب النشطة</div><div class='stat-val'>{val}</div></div>", unsafe_allow_html=True)
+        val = filtered_df[col_dept].nunique() if col_dept else 0
+        st.markdown(f"<div class='stat-card'><div class='stat-title'>🗂️ الأقسام النشطة</div><div class='stat-val'>{val}</div></div>", unsafe_allow_html=True)
     with c3:
         val = filtered_df[col_stage].nunique() if col_stage else 0
         st.markdown(f"<div class='stat-card'><div class='stat-title'>🏫 المراحل التعليمية</div><div class='stat-val'>{val}</div></div>", unsafe_allow_html=True)
     with c4:
         val = filtered_df[col_gender].nunique() if col_gender else 0
-        st.markdown(f"<div class='stat-card'><div class='stat-title'>👥 الفئات المستهدفة</div><div class='stat-val'>{val}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='stat-card'><div class='stat-title'>👥 الفئات المستهدفة (الجنس)</div><div class='stat-val'>{val}</div></div>", unsafe_allow_html=True)
 
-    # 4. ألسنة تفصيلية إحصائية مريحة للعين مع رسوم بيانية منسقة
+    # 4. ألسنة تفصيلية إحصائية مريحة للعين مع رسوم بيانية منسقة (4 ألسنة فقط)
     st.markdown("### 📊 الجداول والبيانات التحليلية")
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "🎓 نوع التعليم", "🏢 المكاتب", "⚙️ الوحدات", "🗂️ الأقسام", "🏫 المراحل", "👥 الجنس"
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "🎓 نوع التعليم", "🗂️ الأقسام", "🏫 المراحل", "👥 الجنس"
     ])
     
     # مصفوفة الألوان والبيانات لبناء المخططات بروح نظام نور المتناسقة
     noor_palette = ["#12543e", "#2a6f57", "#448b72", "#60a88e", "#7dc5aa", "#9be3c7"]
     target_tabs = [
-        (tab1, col_edu_type, "نوع التعليم"), (tab2, col_office, "المكاتب"),
-        (tab3, col_unit, "الوحدات"), (tab4, col_dept, "الأقسام"),
-        (tab5, col_stage, "المراحل"), (tab6, col_gender, "الجنس")
+        (tab1, col_edu_type, "نوع التعليم"),
+        (tab2, col_dept, "الأقسام"),
+        (tab3, col_stage, "المراحل"),
+        (tab4, col_gender, "الجنس")
     ]
 
     for tab, col_name, label in target_tabs:
@@ -156,7 +139,7 @@ if uploaded_file is not None:
                 count_df.columns = [col_name, 'العدد']
                 count_df['النسبة مئوية (%)'] = ((count_df['العدد'] / len(filtered_df)) * 100).round(1)
                 
-                col_l, col_r = st.columns([4, 6])
+                col_l, col_r = st.columns()
                 with col_l:
                     st.dataframe(count_df, use_container_width=True, hide_index=True)
                 with col_r:
