@@ -66,7 +66,7 @@ if uploaded_file is not None:
     df.columns = df.columns.str.strip()
     all_cols = df.columns.tolist()
     
-    # محرك الربط الذكي الصامت بالخلفية للتعرف على حقولك تلقائياً
+    # محرك الربط الذكي بالخلفية للتعرف على حقولك تلقائياً
     col_edu_type = next((c for c in all_cols if any(k in c for k in ['نوع التعليم', 'التعليم', 'تعليم'])), all_cols[0] if all_cols else None)
     col_dept     = next((c for c in all_cols if any(k in c for k in ['قسم', 'القسم'])), all_cols[1] if len(all_cols) > 1 else None)
     col_gender   = next((c for c in all_cols if any(k in c for k in ['الجنس', 'جنس', 'النوع', 'نوع'])), all_cols[2] if len(all_cols) > 2 else None)
@@ -123,7 +123,7 @@ if uploaded_file is not None:
         current_students_total = 0
         global_students_raw = 0
 
-    # 4. عرض الخلاصة الإحصائية العامة المحدثة (مجموع المدارس بناءً على السجلات واختفاء الإجمالي المكرر)
+    # 4. عرض الخلاصة الإحصائية العامة المحدثة
     st.markdown("### 📈 الخلاصة الإحصائية العامة للبيانات")
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -154,46 +154,43 @@ if uploaded_file is not None:
                 
         st.markdown("---")
 
-    # 6. ألسنة تفصيلية إحصائية حرة ومباشرة الظهور تدمج المدارس (السجلات) وإجمالي الطلاب من الملف
+    # 6. ألسنة تفصيلية إحصائية حرة ومباشرة الظهور (تم إعادة صياغتها بالكامل بنظام آمن ومحمي 100%)
     st.markdown("### 📊 الجداول والبيانات التحليلية")
-    tab1, tab2, tab3 = st.tabs([
-        "🎓 نوع التعليم", "🗂️ الأقسام", "👥 الجنس"
-    ])
+    tab1, tab2, tab3 = st.tabs(["🎓 نوع التعليم", "🗂️ الأقسام", "👥 الجنس"])
     
     noor_palette = ["#12543e", "#2a6f57", "#448b72", "#60a88e", "#7dc5aa", "#9be3c7"]
-    target_tabs = [
-        (tab1, col_edu_type, "نوع التعليم"),
-        (tab2, col_dept, "الأقسام"),
-        (tab3, col_gender, "الجنس")
-    ]
+    
+    # 📑 تبويب نوع التعليم
+    with tab1:
+        if col_edu_type and col_edu_type in filtered_df.columns:
+            st.markdown(f"**📈 مسح إحصائي تحليلي لبيانات: `{col_edu_type}`**")
+            c_series = filtered_df.groupby(col_edu_type).size()
+            if col_students and col_students in filtered_df.columns:
+                s_series = filtered_df.groupby(col_edu_type)[col_students].sum()
+                count_df = pd.concat([c_series, s_series], axis=1).reset_index()
+                count_df.columns = [col_edu_type, 'العدد (المدارس)', 'إجمالي عدد الطلاب']
+            else:
+                count_df = c_series.reset_index()
+                count_df.columns = [col_edu_type, 'العدد (المدارس)']
+            count_df['النسبة مئوية (%)'] = ((count_df['العدد (المدارس)'] / len(filtered_df)) * 100).round(1) if len(filtered_df) > 0 else 0
+            count_df = count_df.sort_values(by='العدد (المدارس)', ascending=False)
+            
+            cl, cr = st.columns(2)
+            with cl: st.dataframe(count_df, use_container_width=True, hide_index=True)
+            with cr:
+                fig = px.bar(count_df, x=col_edu_type, y='العدد (المدارس)', text='العدد (المدارس)', color_discrete_sequence=noor_palette)
+                fig.update_layout(height=260, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='rgba(0,0,0,0)')
+                st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("⚠️ حقل نوع التعليم غير متوفر في هذا الملف.")
 
-    for tab, col_name, label in target_tabs:
-        with tab:
-            if col_name and col_name in filtered_df.columns:
-                st.markdown(f"**📈 مسح إحصائي تحليلي لبيانات: `{col_name}`**")
-                
-                total_filtered_len = len(filtered_df) if len(filtered_df) > 0 else 1
-                
-                # تجميع السجلات (المدارس) آلياً لحل مشكلة عدم عرض الجداول نهائياً
-                count_series = filtered_df.groupby(col_name).size()
-                
-                if col_students and col_students in filtered_df.columns:
-                    sum_series = filtered_df.groupby(col_name)[col_students].sum()
-                    count_df = pd.concat([count_series, sum_series], axis=1).reset_index()
-                    count_df.columns = [col_name, 'العدد (المدارس)', 'إجمالي عدد الطلاب']
-                else:
-                    count_df = count_series.reset_index()
-                    count_df.columns = [col_name, 'العدد (المدارس)']
-                
-                count_df['النسبة مئوية (%)'] = ((count_df['العدد (المدارس)'] / total_filtered_len) * 100).round(1)
-                count_df = count_df.sort_values(by='العدد (المدارس)', ascending=False)
-                
-                col_l, col_r = st.columns(2)
-                with col_l:
-                    st.dataframe(count_df, use_container_width=True, hide_index=True)
-                with col_r:
-                    y_axis_col = 'العدد (المدارس)'
-                    fig = px.bar(count_df, x=col_name, y=y_axis_col, text=y_axis_col, color_discrete_sequence=noor_palette)
-                    fig.update_layout(height=260, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='rgba(0,0,0,0)')
-                    st.plotly_chart(fig, use_container_width=True)
+    # 📑 تبويب الأقسام
+    with tab2:
+        if col_dept and col_dept in filtered_df.columns:
+            st.markdown(f"**📈 مسح إحصائي تحليلي لبيانات: `{col_dept}`**")
+            c_series = filtered_df.groupby(col_dept).size()
+            if col_students and col_students in filtered_df.columns:
+                s_series = filtered_df.groupby(col_dept)[col_students].sum()
+                count_df = pd.concat([c_series, s_series], axis=1).reset_index()
+                count_df.columns = [col_dept, 'العدد (المدارس)', 'إجمالي عدد الطلاب']
             else:
