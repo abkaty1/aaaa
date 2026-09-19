@@ -86,7 +86,7 @@ if uploaded_file is not None:
         index=all_cols.index(default_stud_col) if default_stud_col in all_cols else 0
     )
 
-    # تحويل حقل الطلاب وحقل المدارس إلى قيم رقمية لتجنب المشاكل الحسابية
+    # تحويل الحقول إلى قيم رقمية لتفادي أي مشاكل حسابية أو نصية
     if col_students:
         df[col_students] = pd.to_numeric(df[col_students], errors='coerce').fillna(0)
     if col_schools:
@@ -180,7 +180,7 @@ if uploaded_file is not None:
                 
         st.markdown("---")
 
-    # 6. ألسنة تفصيلية إحصائية مريحة للعين مع إدراج عمود "مجموع الطلاب" بدون أخطاء بايثون
+    # 6. ألسنة تفصيلية إحصائية مريحة للعين مع إدراج عمود ومخطط مجموع الطلاب بشكل آمن ومحكم
     st.markdown("### 📊 الجداول والبيانات التحليلية")
     tab1, tab2, tab3 = st.tabs([
         "🎓 نوع التعليم", "🗂️ الأقسام", "👥 الجنس"
@@ -198,12 +198,11 @@ if uploaded_file is not None:
             if col_name and col_name in filtered_df.columns:
                 st.markdown(f"**📈 مسح إحصائي لبيانات: `{col_name}`**")
                 
-                # إصلاح دالة التجميع لتجنب خطأ التسمية المباشرة (Relabeling Error)
+                # تجميع البيانات الآمن والمباشر بدون أخطاء التسمية والرموز المفتوحة
                 if col_students:
-                    # طريقة تجميع آمنة ومتوافقة مع إصدارات Pandas الجديدة والقديمة
-                    grouped = filtered_df.groupby(col_name)
-                    count_series = grouped.size()
-                    sum_series = grouped[col_students].sum()
+                    # حساب الحجم والمجموع بشكل مستقل لضمان استقرار البناء
+                    count_series = filtered_df.groupby(col_name).size()
+                    sum_series = filtered_df.groupby(col_name)[col_students].sum()
                     
-                    count_df = pd.DataFrame({
-                        'العدد (المدارس)': count_series,
+                    # دمج السلاسل في جدول واحد منظم
+                    count_df = pd.concat([count_series, sum_series], axis=1).reset_index()
