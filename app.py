@@ -45,7 +45,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# رفع الملف من القائمة الجانبية للحفاظ على الترتيب العلوي للفلاتر
+# رفع الملف من القائمة الجانبية للحفاظ على التترتيب العلوي للفلاتر
 st.sidebar.markdown("<h3 style='color: #12543e; text-align:center;'>📂 بوابة رفع الملفات</h3>", unsafe_allow_html=True)
 uploaded_file = st.sidebar.file_uploader("يرجى اختيار أو سحب ملف البيانات (Excel / CSV)", type=["xlsx", "csv"])
 
@@ -61,12 +61,10 @@ if uploaded_file is not None:
     col_stage    = next((c for c in all_cols if any(k in c for k in ['المرحلة', 'مرحلة', 'المرحله', 'مرحله'])), None)
     col_gender   = next((c for c in all_cols if any(k in c for k in ['الجنس', 'جنس', 'النوع', 'نوع'])), None)
 
-    # 2. لوحة الفلاتر العلوية على شكل قوائم منسدلة (نظام نور) - تم تقليصها لـ 4 فلاتر فقط
+    # 2. لوحة الفلاتر العلوية على شكل قوائم منسدلة (نظام نور)
     st.markdown("### 🔍 محددات البحث والفرز")
     
-    # توزيع القوائم المنسدلة الأربعة في شبكة مرتبة (عمودان في صفين أو 4 أعمدة في صف واحد)
     row_c1, row_c2, row_c3, row_c4 = st.columns(4)
-    
     filtered_df = df.copy()
 
     # الفلاتر المنسدلة الأربعة المتبقية
@@ -114,13 +112,12 @@ if uploaded_file is not None:
         val = filtered_df[col_gender].nunique() if col_gender else 0
         st.markdown(f"<div class='stat-card'><div class='stat-title'>👥 الفئات المستهدفة (الجنس)</div><div class='stat-val'>{val}</div></div>", unsafe_allow_html=True)
 
-    # 4. ألسنة تفصيلية إحصائية مريحة للعين مع رسوم بيانية منسقة (4 ألسنة فقط)
+    # 4. ألسنة تفصيلية إحصائية مريحة للعين مع رسوم بيانية منسقة (تم إصلاح خطأ التقسيم هنا)
     st.markdown("### 📊 الجداول والبيانات التحليلية")
     tab1, tab2, tab3, tab4 = st.tabs([
         "🎓 نوع التعليم", "🗂️ الأقسام", "🏫 المراحل", "👥 الجنس"
     ])
     
-    # مصفوفة الألوان والبيانات لبناء المخططات بروح نظام نور المتناسقة
     noor_palette = ["#12543e", "#2a6f57", "#448b72", "#60a88e", "#7dc5aa", "#9be3c7"]
     target_tabs = [
         (tab1, col_edu_type, "نوع التعليم"),
@@ -139,7 +136,8 @@ if uploaded_file is not None:
                 count_df.columns = [col_name, 'العدد']
                 count_df['النسبة مئوية (%)'] = ((count_df['العدد'] / len(filtered_df)) * 100).round(1)
                 
-                col_l, col_r = st.columns()
+                # تم إصلاح تمرير الوسيط الرقمي 2 بداخل st.columns
+                col_l, col_r = st.columns(2)
                 with col_l:
                     st.dataframe(count_df, use_container_width=True, hide_index=True)
                 with col_r:
