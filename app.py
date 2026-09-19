@@ -78,7 +78,7 @@ if uploaded_file is not None:
     st.sidebar.markdown("---")
     st.sidebar.markdown("<h4 style='color: #12543e;'>⚙️ إعدادات الحقول الرقمية</h4>", unsafe_allow_html=True)
     
-    default_stud_col = next((c for c in all_cols if any(k in c for k in ['طلاب', 'الطلاب', 'طالب', 'عدد الطلاب'])), all_cols)
+    default_stud_col = next((c for c in all_cols if any(k in c for k in ['طلاب', 'الطلاب', 'طالب', 'عدد الطلاب'])), all_cols[0] if all_cols else "")
     
     col_students = st.sidebar.selectbox(
         "👥 حدد حقل (عدد الطلاب) من ملفك:",
@@ -86,9 +86,11 @@ if uploaded_file is not None:
         index=all_cols.index(default_stud_col) if default_stud_col in all_cols else 0
     )
 
-    # تحويل حقل الطلاب إلى قيم رقمية لتجنب المشاكل الحسابية
+    # تحويل حقل الطلاب وحقل المدارس إلى قيم رقمية لتجنب المشاكل الحسابية
     if col_students:
         df[col_students] = pd.to_numeric(df[col_students], errors='coerce').fillna(0)
+    if col_schools:
+        df[col_schools] = pd.to_numeric(df[col_schools], errors='coerce').fillna(0)
 
     # 2. لوحة الفلاتر العلوية على شكل قوائم منسدلة (نظام نور)
     st.markdown("### 🔍 محددات البحث والفرز")
@@ -128,8 +130,8 @@ if uploaded_file is not None:
 
     # 3. حساب القيم الكلية العامة والفرعية بناء على خيارات البحث والفرز الحالية
     if col_schools:
-        current_schools_total = int(pd.to_numeric(filtered_df[col_schools], errors='coerce').sum())
-        global_schools_raw = int(pd.to_numeric(df[col_schools], errors='coerce').sum())
+        current_schools_total = int(filtered_df[col_schools].sum())
+        global_schools_raw = int(df[col_schools].sum())
     else:
         current_schools_total = len(filtered_df)
         global_schools_raw = len(df)
@@ -164,21 +166,21 @@ if uploaded_file is not None:
         
         with sc1:
             if col_schools:
-                total_schools_sum = pd.to_numeric(filtered_df[col_schools], errors='coerce').sum()
+                total_schools_sum = filtered_df[col_schools].sum()
                 st.markdown(f"<div class='stat-card-special'><div class='stat-title'>🏢 مجموع المدارس المطابقة</div><div class='stat-val-special'>{int(total_schools_sum):,} مدرسة</div></div>", unsafe_allow_html=True)
             else:
-                st.markdown(f"<div class='stat-card-special'><div class='stat-title'>🏢 مجموع المدارس المطابقة (عدد السجلات)</div><div class='stat-val-special'>{len(filtered_df):,} mدرسة</div></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='stat-card-special'><div class='stat-title'>🏢 مجموع المدارس المطابقة (عدد السجلات)</div><div class='stat-val-special'>{len(filtered_df):,} مدرسة</div></div>", unsafe_allow_html=True)
                 
         with sc2:
             if col_students:
                 total_students_sum = filtered_df[col_students].sum()
-                st.markdown(f"<div class='stat-card-special'><div class='stat-title'>👥 مجموع الطلاب المشمولين</div><div class='stat-val-special'>{int(total_students_sum):項目} طالب / طالبة</div></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='stat-card-special'><div class='stat-title'>👥 مجموع الطلاب المشمولين</div><div class='stat-val-special'>{int(total_students_sum):,} طالب / طالبة</div></div>", unsafe_allow_html=True)
             else:
                 st.markdown("<div class='stat-card-special'><div class='stat-title'>👥 مجموع الطلاب المطابقين</div><div class='stat-val-special' style='font-size:16px; color:#991b1b;'>0 طالب</div></div>", unsafe_allow_html=True)
                 
         st.markdown("---")
 
-    # 6. ألسنة تفصيلية إحصائية مريحة للعين مع إضافة عمود "مجموع الطلاب" إلى الجداول
+    # 6. ألسنة تفصيلية إحصائية مريحة للعين مع إدراج عمود "مجموع الطلاب" بدون أخطاء بايثون
     st.markdown("### 📊 الجداول والبيانات التحليلية")
     tab1, tab2, tab3 = st.tabs([
         "🎓 نوع التعليم", "🗂️ الأقسام", "👥 الجنس"
@@ -196,12 +198,12 @@ if uploaded_file is not None:
             if col_name and col_name in filtered_df.columns:
                 st.markdown(f"**📈 مسح إحصائي لبيانات: `{col_name}`**")
                 
-                # بناء الجدول الإحصائي المتقدم (حساب التكرار ومجموع الطلاب معاً)
+                # إصلاح دالة التجميع لتجنب خطأ التسمية المباشرة (Relabeling Error)
                 if col_students:
-                    # تجميع البيانات لحساب العدد وإجمالي الطلاب لكل فئة
-                    grouped_df = filtered_df.groupby(col_name).agg(
-                        العدد=('size'),
-                        مجموع_الطلاب=(col_students, 'sum')
-                    ).reset_index()
-                    # ترتيب تنازلي حسب مجموع الطلاب أو العدد لراحة العين
-                    count_df = grouped_df.sort_values(by='العدد', ascending=False)
+                    # طريقة تجميع آمنة ومتوافقة مع إصدارات Pandas الجديدة والقديمة
+                    grouped = filtered_df.groupby(col_name)
+                    count_series = grouped.size()
+                    sum_series = grouped[col_students].sum()
+                    
+                    count_df = pd.DataFrame({
+                        'العدد (المدارس)': count_series,
