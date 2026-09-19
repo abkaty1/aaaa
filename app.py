@@ -71,9 +71,21 @@ if uploaded_file is not None:
     col_dept     = next((c for c in all_cols if any(k in c for k in ['قسم', 'القسم'])), None)
     col_gender   = next((c for c in all_cols if any(k in c for k in ['الجنس', 'جنس', 'النوع', 'نوع'])), None)
     
-    # محرك البحث الذكي لأعمدة أعداد المدارس والطلاب لإجراء العمليات الحسابية
-    col_students = next((c for c in all_cols if any(k in c for k in ['طلاب', 'الطلاب', 'طالب', 'عدد الطلاب'])), None)
+    # محرك البحث الذكي لأعمدة أعداد المدارس
     col_schools  = next((c for c in all_cols if any(k in c for k in ['مدارس', 'المدارس', 'مدرسة', 'عدد المدارس'])), None)
+    
+    # خيار تحديد حقل "عدد الطلاب" يدوياً للتأكد من ربط الرقم بشكل صحيح
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("<h4 style='color: #12543e;'>⚙️ إعدادات الحقول الرقمية</h4>", unsafe_allow_html=True)
+    
+    # محاولة إيجاد حقل الطلاب افتراضياً
+    default_stud_col = next((c for c in all_cols if any(k in c for k in ['طلاب', 'الطلاب', 'طالب', 'عدد الطلاب'])), all_cols[0])
+    
+    col_students = st.sidebar.selectbox(
+        "👥 حدد حقل (عدد الطلاب) من ملفك:",
+        options=all_cols,
+        index=all_cols.index(default_stud_col) if default_stud_col in all_cols else 0
+    )
 
     # 2. لوحة الفلاتر العلوية على شكل قوائم منسدلة (نظام نور)
     st.markdown("### 🔍 محددات البحث والفرز")
@@ -133,7 +145,7 @@ if uploaded_file is not None:
         if global_students_total > 0:
             st.markdown(f"<div class='stat-card'><div class='stat-title'>👥 المجموع الكلي للطلاب</div><div class='stat-val'>{global_students_total:,} طالب</div></div>", unsafe_allow_html=True)
         else:
-            st.markdown(f"<div class='stat-card'><div class='stat-title'>👥 المجموع الكلي للطلاب</div><div class='stat-val' style='font-size:14px; color:#94a3b8;'>غير متوفر بالملف</div></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='stat-card'><div class='stat-title'>👥 المجموع الكلي للطلاب</div><div class='stat-val' style='font-size:14px; color:#94a3b8;'>0 طالب</div></div>", unsafe_allow_html=True)
     with c4:
         val = filtered_df[col_dept].nunique() if col_dept else 0
         st.markdown(f"<div class='stat-card'><div class='stat-title'>🗂️ الأقسام النشطة</div><div class='stat-val'>{val}</div></div>", unsafe_allow_html=True)
@@ -158,7 +170,7 @@ if uploaded_file is not None:
                 total_students_sum = pd.to_numeric(filtered_df[col_students], errors='coerce').sum()
                 st.markdown(f"<div class='stat-card-special'><div class='stat-title'>👥 مجموع الطلاب المشمولين</div><div class='stat-val-special'>{int(total_students_sum):,} طالب / طالبة</div></div>", unsafe_allow_html=True)
             else:
-                st.markdown("<div class='stat-card-special'><div class='stat-title'>👥 مجموع الطلاب المطابقين</div><div class='stat-val-special' style='font-size:16px; color:#991b1b;'>لم يتم العثور على حقل أعداد الطلاب بالملف لحسابه</div></div>", unsafe_allow_html=True)
+                st.markdown("<div class='stat-card-special'><div class='stat-title'>👥 مجموع الطلاب المطابقين</div><div class='stat-val-special' style='font-size:16px; color:#991b1b;'>0 طالب</div></div>", unsafe_allow_html=True)
                 
         st.markdown("---")
 
@@ -191,15 +203,3 @@ if uploaded_file is not None:
                 with col_r:
                     fig = px.bar(count_df, x=col_name, y='العدد', text='العدد', color_discrete_sequence=noor_palette)
                     fig.update_layout(height=260, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='rgba(0,0,0,0)')
-                    st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info(f"الحقل الخاص بـ '{label}' لم يتم تحديده أو التعرف عليه في ملفك بعد.")
-
-    st.markdown("---")
-    
-    # 7. استعراض الجدول الكامل المفرز
-    with st.expander("Data Show"):
-        st.dataframe(filtered_df, use_container_width=True)
-
-else:
-    st.info("💡 يرجى رفع ملف البيانات لتنشيط لوحة المؤشرات الإحصائية.")
